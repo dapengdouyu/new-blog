@@ -1,0 +1,21 @@
+{
+  "name": "my-vitepress-blog",
+  "version": "1.0.0",
+  "description": "A blog built with VitePress",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev docs",
+    "build": "vitepress build docs",
+    "serve": "vitepress serve docs"
+  },
+  "keywords": [
+    "vitepress",
+    "blog"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "vitepress": "^1.0.0",
+    "vue": "^3.4.0"
+  }
+}
