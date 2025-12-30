@@ -8,8 +8,12 @@ export default defineConfig({
     nav: [
       { text: '首页', link: '/' },
       { text: '文章', link: '/posts/' },
-      { text: '关于', link: '/about' },
-      { text: '游乐场', link: '/playground' }
+      { text: '指南', items: [
+        { text: 'Markdown 指南', link: '/markdown-guide' },
+        { text: '阅读进度指南', link: '/reading-progress-guide' }
+      ]},
+      { text: '游乐场', link: '/playground' },
+      { text: '关于', link: '/about' }
     ],
     sidebar: {
       '/posts/': [
@@ -22,10 +26,26 @@ export default defineConfig({
       ]
     }
   },
-  // markdown: {
-  //   // 如需数学公式支持，可取消注释并安装 markdown-it-mathjax3
-  //   math: true
-  // },
+  markdown: {
+    // 启用图片懒加载
+    image: {
+      lazyLoading: true
+    },
+    // 自定义容器标签
+    container: {
+      tipLabel: '提示',
+      warningLabel: '警告',
+      dangerLabel: '危险',
+      infoLabel: '信息',
+      detailsLabel: '详细信息'
+    },
+    // 启用代码块行号
+    lineNumbers: true,
+    // 目录配置
+    toc: {
+      level: [2, 3, 4]
+    }
+  },
   vite: {
     resolve: {
       alias: {
