@@ -1,56 +1,17 @@
 import { defineConfig } from 'vitepress'
-import { fileURLToPath, URL } from 'node:url'
+import { join } from 'path'
+import { generateSidebarConfig, generateNavConfig } from './utils/sidebarGenerator'
+
+// 获取 docs 目录路径
+const DOCS_DIR: string = join(process.cwd(), 'docs')
 
 export default defineConfig({
-  title: 'My Blog',
-  description: 'A blog built with VitePress and Vue',
+  title: '我的博客',
+  description: '这是我的个人博客，分享技术、生活和思考',
+  lang: 'zh-CN',
+  
   themeConfig: {
-    nav: [
-      { text: '首页', link: '/' },
-      { text: '文章', link: '/posts/' },
-      { text: '指南', items: [
-        { text: 'Markdown 指南', link: '/markdown-guide' },
-        { text: '阅读进度指南', link: '/reading-progress-guide' }
-      ]},
-      { text: '游乐场', link: '/playground' },
-      { text: '关于', link: '/about' }
-    ],
-    sidebar: {
-      '/posts/': [
-        {
-          text: '文章',
-          items: [
-            { text: '我的第一篇文章', link: '/posts/my-first-post' }
-          ]
-        }
-      ]
-    }
-  },
-  markdown: {
-    // 启用图片懒加载
-    image: {
-      lazyLoading: true
-    },
-    // 自定义容器标签
-    container: {
-      tipLabel: '提示',
-      warningLabel: '警告',
-      dangerLabel: '危险',
-      infoLabel: '信息',
-      detailsLabel: '详细信息'
-    },
-    // 启用代码块行号
-    lineNumbers: true,
-    // 目录配置
-    toc: {
-      level: [2, 3, 4]
-    }
-  },
-  vite: {
-    resolve: {
-      alias: {
-        '@': fileURLToPath(new URL('./', import.meta.url))
-      }
-    }
+    nav: generateNavConfig(DOCS_DIR),
+    sidebar: generateSidebarConfig(DOCS_DIR)
   }
 })
