@@ -10,7 +10,7 @@ import SimpleBlogAudioPlayer from './components/SimpleBlogAudioPlayer.vue'
 
 ## 最新文章
 
-- [示例博客文章](posts/example.md) - 展示如何在文章顶部嵌入音乐播放器
+- [日常问题](日常问题/) - 记录和解决日常遇到的各种问题
 
 ## 日常问题
 
