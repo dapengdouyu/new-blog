@@ -5,7 +5,8 @@ import { join, extname, basename } from 'path'
 // VitePress 主题配置类型
 export interface NavItem {
   text: string
-  link: string
+  link?: string
+  items?: NavItem[]
 }
 
 export interface SidebarItem {
@@ -16,6 +17,39 @@ export interface SidebarItem {
 
 export interface SidebarConfig {
   [key: string]: SidebarItem[]
+}
+
+/**
+ * 从文件名提取序号（自然排序用）
+ * 支持：1.xxx、1、xxx、1_xxx 等
+ */
+export function extractOrderFromName(name: string): number | null {
+  const m = name.match(/^(\d+)\s*[._、-]/)
+  if (!m) return null
+  const n = Number(m[1])
+  return Number.isFinite(n) ? n : null
+}
+
+export function stripLeadingOrder(text: string): string {
+  return text.replace(/^\s*\d+\s*[._、-]\s*/, '').trim()
+}
+
+export function normalizeTitleWithFileOrder(fileName: string, title: string): string {
+  const order = extractOrderFromName(fileName)
+  if (order == null) return title
+
+  const rest = stripLeadingOrder(title)
+  // 用文件名序号兜底，避免 frontmatter 序号写错导致侧边栏显示异常
+  return rest ? `${order}、${rest}` : `${order}、${stripLeadingOrder(basename(fileName, '.md'))}`
+}
+
+export function compareNamesNaturally(aName: string, bName: string): number {
+  const aOrder = extractOrderFromName(aName)
+  const bOrder = extractOrderFromName(bName)
+  if (aOrder != null && bOrder != null) return aOrder - bOrder
+  if (aOrder != null) return -1
+  if (bOrder != null) return 1
+  return aName.localeCompare(bName, 'zh-CN')
 }
 
 /**
@@ -75,6 +109,35 @@ export function getTopLevelContentDirs(docsDir: string): string[] {
 }
 
 /**
+ * 检查目录是否包含Markdown文件（递归检查）
+ */
+export function hasMarkdownFiles(dirPath: string): boolean {
+  try {
+    const items: Dirent[] = readdirSync(dirPath, { withFileTypes: true })
+
+    // 检查当前目录是否有md文件
+    const hasMdFiles = items.some(item => item.isFile() && extname(item.name) === '.md')
+
+    // 如果有md文件，直接返回true
+    if (hasMdFiles) {
+      return true
+    }
+
+    // 递归检查子目录
+    const subDirs = items.filter(item => item.isDirectory())
+    for (const subDir of subDirs) {
+      if (hasMarkdownFiles(join(dirPath, subDir.name))) {
+        return true
+      }
+    }
+
+    return false
+  } catch (error) {
+    return false
+  }
+}
+
+/**
  * 递归生成侧边栏项
  * @param baseDir 基础目录路径（docs目录）
  * @param baseUrl 基础URL路径（如 /go/）
@@ -83,59 +146,60 @@ export function getTopLevelContentDirs(docsDir: string): string[] {
 export function generateSidebarItems(baseDir: string, baseUrl: string, currentDir: string = ''): SidebarItem[] {
   const items: SidebarItem[] = []
   const fullDirPath: string = join(baseDir, currentDir)
-  
+
   try {
     const itemsInDir: Dirent[] = readdirSync(fullDirPath, { withFileTypes: true })
-    
+
     // 1. 先处理当前目录下的 Markdown 文件（不包括 index.md，它作为目录入口）
     const mdFiles: Dirent[] = itemsInDir
       .filter(item => item.isFile() && extname(item.name) === '.md' && item.name !== 'index.md')
-      .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
-    
+      .sort((a, b) => compareNamesNaturally(a.name, b.name))
+
     for (const file of mdFiles) {
       const filePath: string = join(fullDirPath, file.name)
-      const title: string = extractTitleFromMarkdown(filePath)
+      const rawTitle: string = extractTitleFromMarkdown(filePath)
+      const title: string = normalizeTitleWithFileOrder(file.name, rawTitle)
       // 构建文件URL：baseUrl + currentDir + filename
-      const fileUrl: string = currentDir 
+      const fileUrl: string = currentDir
         ? `${baseUrl}${currentDir}/${file.name.replace('.md', '')}`
         : `${baseUrl}${file.name.replace('.md', '')}`
-      
+
       items.push({
         text: title,
         link: fileUrl
       })
     }
-    
-    // 2. 处理子目录（递归），放在文件之后
+
+    // 2. 处理子目录（递归），放在文件之后，只包含有md文件的目录
     const subDirs: Dirent[] = itemsInDir
-      .filter(item => item.isDirectory())
-      .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
-    
+      .filter(item => item.isDirectory() && hasMarkdownFiles(join(fullDirPath, item.name)))
+      .sort((a, b) => compareNamesNaturally(a.name, b.name))
+
     for (const subDir of subDirs) {
       const subDirPath: string = currentDir ? join(currentDir, subDir.name) : subDir.name
       const subDirFullPath: string = join(baseDir, subDirPath)
-      
+
       // 获取子目录的显示文本：优先从 .text 文件读取，其次从 index.md，最后使用目录名
       let subDirTitle: string = subDir.name
       const subDirIndexPath: string = join(subDirFullPath, 'index.md')
       // 子目录的链接：baseUrl + subDirPath + /
       const subDirLink: string = `${baseUrl}${subDirPath}/`
-      
+
       try {
         const subDirItems: Dirent[] = readdirSync(subDirFullPath, { withFileTypes: true })
         const hasIndex: boolean = subDirItems.some(item => item.isFile() && item.name === 'index.md')
-        
+
         // 优先使用 .text 文件，其次使用 index.md 的标题，最后使用目录名
         subDirTitle = getDirectoryText(subDirFullPath, subDir.name)
         if (subDirTitle === subDir.name && hasIndex) {
           subDirTitle = extractTitleFromMarkdown(subDirIndexPath)
         }
-        
+
         // 递归获取子目录的内容
         const subItems: SidebarItem[] = generateSidebarItems(baseDir, baseUrl, subDirPath)
-        
-        // 如果子目录有内容（index.md 或其他文件/子目录），添加到侧边栏
-        if (hasIndex || subItems.length > 0) {
+
+        // 只有当子目录有md文件时才添加到侧边栏
+        if (hasMarkdownFiles(subDirFullPath)) {
           items.push({
             text: subDirTitle,
             link: subDirLink,
@@ -149,80 +213,265 @@ export function generateSidebarItems(baseDir: string, baseUrl: string, currentDi
   } catch (error) {
     console.error(`Error generating sidebar items for ${fullDirPath}:`, error)
   }
-  
+
+  return items
+}
+
+/**
+ * 生成侧边栏项，只保留直接包含md文件的目录
+ */
+export function generateSidebarItemsFlat(baseDir: string, baseUrl: string, currentDir: string = ''): SidebarItem[] {
+  const items: SidebarItem[] = []
+  const fullDirPath: string = join(baseDir, currentDir)
+
+  try {
+    const itemsInDir: Dirent[] = readdirSync(fullDirPath, { withFileTypes: true })
+
+    // 1. 处理当前目录下的 Markdown 文件
+    const mdFiles: Dirent[] = itemsInDir
+      .filter(item => item.isFile() && extname(item.name) === '.md')
+      .sort((a, b) => compareNamesNaturally(a.name, b.name))
+
+    for (const file of mdFiles) {
+      const filePath: string = join(fullDirPath, file.name)
+      const rawTitle: string = extractTitleFromMarkdown(filePath)
+      const title: string = normalizeTitleWithFileOrder(file.name, rawTitle)
+      const fileUrl: string = currentDir
+        ? `${baseUrl}${currentDir}/${file.name.replace('.md', '')}`
+        : `${baseUrl}${file.name.replace('.md', '')}`
+
+      items.push({
+        text: title,
+        link: fileUrl
+      })
+    }
+
+    // 2. 处理直接包含md文件的子目录（不递归，只显示一层）
+    const subDirs: Dirent[] = itemsInDir
+      .filter(item => item.isDirectory())
+      .sort((a, b) => compareNamesNaturally(a.name, b.name))
+
+    for (const subDir of subDirs) {
+      const subDirPath: string = currentDir ? join(currentDir, subDir.name) : subDir.name
+      const subDirFullPath: string = join(baseDir, subDirPath)
+
+      try {
+        const subDirItems: Dirent[] = readdirSync(subDirFullPath, { withFileTypes: true })
+
+        // 检查子目录是否直接包含md文件
+        const hasDirectMdFiles = subDirItems.some(item =>
+          item.isFile() && extname(item.name) === '.md'
+        )
+
+        if (hasDirectMdFiles) {
+          // 获取子目录的显示文本
+          let subDirTitle: string = subDir.name
+          const subDirIndexPath: string = join(subDirFullPath, 'index.md')
+          const hasIndex: boolean = subDirItems.some(item => item.isFile() && item.name === 'index.md')
+
+          subDirTitle = getDirectoryText(subDirFullPath, subDir.name)
+          if (subDirTitle === subDir.name && hasIndex) {
+            subDirTitle = extractTitleFromMarkdown(subDirIndexPath)
+          }
+
+          // 子目录的链接
+          const subDirLink: string = `${baseUrl}${subDirPath}/`
+
+          // 获取子目录下的md文件
+          const subMdFiles: SidebarItem[] = []
+          const sortedMdFiles = subDirItems
+            .filter(item => item.isFile() && extname(item.name) === '.md')
+            .sort((a, b) => compareNamesNaturally(a.name, b.name))
+
+          for (const file of sortedMdFiles) {
+            const filePath: string = join(subDirFullPath, file.name)
+            const rawTitle: string = extractTitleFromMarkdown(filePath)
+            const title: string = normalizeTitleWithFileOrder(file.name, rawTitle)
+            const fileUrl: string = `${baseUrl}${subDirPath}/${file.name.replace('.md', '')}`
+
+            subMdFiles.push({
+              text: title,
+              link: fileUrl
+            })
+          }
+
+          // 添加子目录
+          items.push({
+            text: subDirTitle,
+            link: subDirLink,
+            items: subMdFiles.length > 0 ? subMdFiles : undefined
+          })
+        }
+      } catch (e) {
+        console.error(`Error processing subdirectory ${subDirFullPath}:`, e)
+      }
+    }
+  } catch (error) {
+    console.error(`Error generating sidebar items for ${fullDirPath}:`, error)
+  }
+
   return items
 }
 
 /**
  * 生成完整的侧边栏配置
- * 第一层目录作为导航栏，每个目录下的内容作为侧边栏
+ * 只保留md文件和直接包含md文件的父级目录，跳过中间目录层级
  */
 export function generateSidebarConfig(docsDir: string): SidebarConfig {
   const sidebar: SidebarConfig = {}
-  const topLevelDirs: string[] = getTopLevelContentDirs(docsDir)
-  
-  for (const dir of topLevelDirs) {
-    const dirPath: string = join(docsDir, dir)
-    const baseUrl: string = `/${dir}/`
-    
-    // 检查是否有 index.md
-    const indexPath: string = join(dirPath, 'index.md')
-    const hasIndex: boolean = readdirSync(dirPath, { withFileTypes: true })
-      .some(item => item.isFile() && item.name === 'index.md')
-    
-    // 生成该目录下的所有侧边栏项（包括子目录和文件）
-    const sidebarItems: SidebarItem[] = generateSidebarItems(dirPath, baseUrl)
-    
-    // 构建侧边栏配置
-    const sidebarConfig: SidebarItem[] = []
-    
-    // 如果有 index.md，将其作为第一项
-    if (hasIndex) {
-      // 优先使用 .text 文件，其次使用 index.md 的标题，最后使用目录名
-      let dirTitle: string = getDirectoryText(dirPath, dir)
-      if (dirTitle === dir) {
-        dirTitle = extractTitleFromMarkdown(indexPath)
+
+  // 收集所有直接包含md文件的目录（包含完整的相对路径信息）
+  function collectMdDirectories(baseDir: string, currentPath: string = ''): Array<{fullPath: string, relativePath: string, displayName: string}> {
+    const result: Array<{fullPath: string, relativePath: string, displayName: string}> = []
+
+    try {
+      const items = readdirSync(baseDir, { withFileTypes: true })
+
+      for (const item of items) {
+        if (item.isDirectory()) {
+          // 跳过特殊目录
+          if (item.name.startsWith('.') || item.name === 'components') {
+            continue
+          }
+
+          const itemPath = join(baseDir, item.name)
+          const itemRelativePath = currentPath ? join(currentPath, item.name) : item.name
+          const subItems = readdirSync(itemPath, { withFileTypes: true })
+
+          // 检查当前目录是否直接包含md文件
+          const hasDirectMd = subItems.some(subItem =>
+            subItem.isFile() && extname(subItem.name) === '.md'
+          )
+
+          if (hasDirectMd) {
+            // 如果直接包含md文件，添加到结果中
+            result.push({
+              fullPath: itemPath,
+              relativePath: itemRelativePath,
+              displayName: item.name  // 只显示最后一级目录名
+            })
+          } else {
+            // 如果不直接包含md文件，继续递归查找
+            const subResults = collectMdDirectories(itemPath, itemRelativePath)
+            result.push(...subResults)
+          }
+        }
       }
-      sidebarConfig.push({
-        text: dirTitle,
-        link: baseUrl
-      })
+    } catch (e) {
+      console.error(`Error collecting MD directories from ${baseDir}:`, e)
     }
-    
-    // 添加其他内容（文件和子目录）
-    if (sidebarItems.length > 0) {
-      sidebarConfig.push(...sidebarItems)
+
+    return result
+  }
+
+  const topLevelDirs = getTopLevelContentDirs(docsDir)
+
+  for (const topDir of topLevelDirs) {
+    const topDirPath = join(docsDir, topDir)
+
+    if (!hasMarkdownFiles(topDirPath)) {
+      continue
     }
-    
-    // 如果有任何内容，添加到侧边栏配置
-    if (sidebarConfig.length > 0) {
-      sidebar[baseUrl] = sidebarConfig
+
+    // 收集该顶级目录下所有直接包含md文件的目录
+    // 注意：顶级目录本身（如 docs/golang）也可能直接包含 index.md，需要纳入 sidebar key（/golang/）
+    const mdDirectories: Array<{fullPath: string, relativePath: string, displayName: string}> = []
+    try {
+      const topDirItems = readdirSync(topDirPath, { withFileTypes: true })
+      const hasTopDirectMd = topDirItems.some(item => item.isFile() && extname(item.name) === '.md')
+      if (hasTopDirectMd) {
+        mdDirectories.push({
+          fullPath: topDirPath,
+          relativePath: topDir,
+          displayName: topDir
+        })
+      }
+    } catch (e) {
+      // ignore
+    }
+    mdDirectories.push(...collectMdDirectories(topDirPath, topDir))
+
+    // 为每个包含md文件的目录生成侧边栏
+    for (const dirInfo of mdDirectories) {
+      const sidebarItems: SidebarItem[] = []
+
+      try {
+        const dirItems = readdirSync(dirInfo.fullPath, { withFileTypes: true })
+
+        // 获取目录标题
+        let dirTitle = dirInfo.displayName
+        const dirIndexPath = join(dirInfo.fullPath, 'index.md')
+        const hasIndex = dirItems.some(item => item.isFile() && item.name === 'index.md')
+
+        dirTitle = getDirectoryText(dirInfo.fullPath, dirTitle)
+        if (dirTitle === dirInfo.displayName && hasIndex) {
+          dirTitle = extractTitleFromMarkdown(dirIndexPath)
+        }
+
+        // sidebar 的 key 必须匹配真实路由前缀，否则 VitePress 不会渲染侧边栏
+        // 例如：docs/golang/core => key 必须是 /golang/core/（而不是 /core/）
+        const actualBaseUrl = `/${dirInfo.relativePath}/`
+        const sidebarKey = actualBaseUrl
+
+        // 添加目录入口（如果有index.md）
+        if (hasIndex) {
+          sidebarItems.push({
+            text: dirTitle,
+            link: actualBaseUrl
+          })
+        }
+
+        // 添加md文件
+        const mdFiles = dirItems
+          .filter(item => item.isFile() && extname(item.name) === '.md' && item.name !== 'index.md')
+          .sort((a, b) => compareNamesNaturally(a.name, b.name))
+
+        for (const file of mdFiles) {
+          const filePath = join(dirInfo.fullPath, file.name)
+          const rawTitle = extractTitleFromMarkdown(filePath)
+          const title = normalizeTitleWithFileOrder(file.name, rawTitle)
+          const fileUrl = `${actualBaseUrl}${file.name.replace('.md', '')}`
+
+          sidebarItems.push({
+            text: title,
+            link: fileUrl
+          })
+        }
+
+        // 如果有内容，添加到侧边栏配置
+        if (sidebarItems.length > 0) {
+          sidebar[sidebarKey] = sidebarItems
+        }
+
+      } catch (e) {
+        console.error(`Error processing directory ${dirInfo.fullPath}:`, e)
+      }
     }
   }
-  
+
   return sidebar
 }
 
 /**
- * 生成导航栏配置
+ * 生成导航栏配置（支持多级菜单）
  */
 export function generateNavConfig(docsDir: string): NavItem[] {
   const nav: NavItem[] = [
     {
       text: '首页',
-      link: '/' 
+      link: '/'
     }
   ]
-  
+
   const topLevelDirs: string[] = getTopLevelContentDirs(docsDir)
-  
+
   for (const dir of topLevelDirs) {
     const dirPath: string = join(docsDir, dir)
     const indexPath: string = join(dirPath, 'index.md')
-    
+
     // 获取目录显示文本：优先从 .text 文件读取，其次从 index.md，最后使用目录名
     let dirTitle: string = getDirectoryText(dirPath, dir)
-    
+
     // 如果没有 .text 文件，尝试从 index.md 提取标题
     if (dirTitle === dir) {
       try {
@@ -234,12 +483,65 @@ export function generateNavConfig(docsDir: string): NavItem[] {
         // 如果无法读取，使用目录名
       }
     }
-    
-    nav.push({
-      text: dirTitle,
-      link: `/${dir}/`
-    })
+
+    // 检查是否有子目录
+    const subDirs: string[] = []
+    try {
+      const items = readdirSync(dirPath, { withFileTypes: true })
+      for (const item of items) {
+        if (item.isDirectory() && hasMarkdownFiles(join(dirPath, item.name))) {
+          subDirs.push(item.name)
+        }
+      }
+    } catch (e) {
+      // 如果无法读取目录，继续
+    }
+
+    // 如果有子目录，创建多级导航
+    if (subDirs.length > 0) {
+      const navItems: NavItem[] = []
+
+      // 主目录链接
+      navItems.push({
+        text: '概览',
+        link: `/${dir}/`
+      })
+
+      // 子目录链接
+      for (const subDir of subDirs.sort((a, b) => compareNamesNaturally(a, b))) {
+        const subDirPath = join(dirPath, subDir)
+        const subDirIndexPath = join(subDirPath, 'index.md')
+
+        let subDirTitle = getDirectoryText(subDirPath, subDir)
+        if (subDirTitle === subDir) {
+          try {
+            if (readdirSync(subDirPath, { withFileTypes: true })
+              .some(item => item.isFile() && item.name === 'index.md')) {
+              subDirTitle = extractTitleFromMarkdown(subDirIndexPath)
+            }
+          } catch (e) {
+            // 如果无法读取，使用目录名
+          }
+        }
+
+        navItems.push({
+          text: subDirTitle,
+          link: `/${dir}/${subDir}/`
+        })
+      }
+
+      nav.push({
+        text: dirTitle,
+        items: navItems
+      })
+    } else {
+      // 没有子目录，直接添加顶级链接
+      nav.push({
+        text: dirTitle,
+        link: `/${dir}/`
+      })
+    }
   }
-  
+
   return nav
 }
