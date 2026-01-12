@@ -315,10 +315,12 @@ export function generateSidebarItemsFlat(baseDir: string, baseUrl: string, curre
 
 /**
  * 生成完整的侧边栏配置
- * 只保留md文件和直接包含md文件的父级目录，跳过中间目录层级
+ * 只显示直接包含md文件的父级目录
+ * @returns { sidebar: SidebarConfig, sidebarPaths: Set<string> } - 返回侧边栏配置和已使用的路径集合
  */
-export function generateSidebarConfig(docsDir: string): SidebarConfig {
+export function generateSidebarConfig(docsDir: string): { sidebar: SidebarConfig, sidebarPaths: Set<string> } {
   const sidebar: SidebarConfig = {}
+  const sidebarPaths = new Set<string>()
 
   // 收集所有直接包含md文件的目录（包含完整的相对路径信息）
   function collectMdDirectories(baseDir: string, currentPath: string = ''): Array<{fullPath: string, relativePath: string, displayName: string}> {
@@ -335,7 +337,8 @@ export function generateSidebarConfig(docsDir: string): SidebarConfig {
           }
 
           const itemPath = join(baseDir, item.name)
-          const itemRelativePath = currentPath ? join(currentPath, item.name) : item.name
+          // 使用 URL 格式（正斜杠）构建相对路径
+          const itemRelativePath = currentPath ? `${currentPath}/${item.name}` : item.name
           const subItems = readdirSync(itemPath, { withFileTypes: true })
 
           // 检查当前目录是否直接包含md文件
@@ -413,6 +416,9 @@ export function generateSidebarConfig(docsDir: string): SidebarConfig {
         const actualBaseUrl = `/${dirInfo.relativePath}/`
         const sidebarKey = actualBaseUrl
 
+        // 记录这个路径已被 sidebar 使用
+        sidebarPaths.add(dirInfo.relativePath)
+
         // 添加目录入口（如果有index.md）
         if (hasIndex) {
           sidebarItems.push({
@@ -449,13 +455,90 @@ export function generateSidebarConfig(docsDir: string): SidebarConfig {
     }
   }
 
-  return sidebar
+  return { sidebar, sidebarPaths }
 }
 
 /**
- * 生成导航栏配置（支持多级菜单）
+ * 递归生成导航项（排除 sidebar 中已使用的目录）
+ * @param baseDir 基础目录路径
+ * @param currentPath 当前相对路径（URL 格式，使用正斜杠）
+ * @param sidebarPaths sidebar 已使用的路径集合
+ * @returns 导航项数组
  */
-export function generateNavConfig(docsDir: string): NavItem[] {
+function generateNavItemsRecursive(
+  baseDir: string,
+  currentPath: string,
+  sidebarPaths: Set<string>
+): NavItem[] {
+  const items: NavItem[] = []
+  // 将 URL 格式的路径转换为文件系统路径
+  const fullDirPath = join(baseDir, ...currentPath.split('/').filter(Boolean))
+
+  try {
+    const dirItems = readdirSync(fullDirPath, { withFileTypes: true })
+    const subDirs = dirItems
+      .filter(item => item.isDirectory() && !item.name.startsWith('.') && item.name !== 'components')
+      .sort((a, b) => compareNamesNaturally(a.name, b.name))
+
+    for (const subDir of subDirs) {
+      // 构建 URL 格式的相对路径
+      const subDirRelativePath = currentPath ? `${currentPath}/${subDir.name}` : subDir.name
+      // 构建文件系统路径
+      const subDirFullPath = join(baseDir, ...subDirRelativePath.split('/').filter(Boolean))
+
+      // 如果这个目录在 sidebar 中，跳过
+      if (sidebarPaths.has(subDirRelativePath)) {
+        continue
+      }
+
+      // 检查子目录是否有内容（md文件或子目录）
+      if (!hasMarkdownFiles(subDirFullPath)) {
+        continue
+      }
+
+      // 获取目录标题
+      let dirTitle = getDirectoryText(subDirFullPath, subDir.name)
+      const subDirIndexPath = join(subDirFullPath, 'index.md')
+      try {
+        if (readdirSync(subDirFullPath, { withFileTypes: true })
+          .some(item => item.isFile() && item.name === 'index.md')) {
+          if (dirTitle === subDir.name) {
+            dirTitle = extractTitleFromMarkdown(subDirIndexPath)
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      // 递归获取子目录的导航项
+      const subItems = generateNavItemsRecursive(baseDir, subDirRelativePath, sidebarPaths)
+
+      // 构建导航项
+      const navItem: NavItem = {
+        text: dirTitle,
+        link: `/${subDirRelativePath}/`
+      }
+
+      // 如果有子项，添加到 items 中
+      if (subItems.length > 0) {
+        navItem.items = subItems
+      }
+
+      items.push(navItem)
+    }
+  } catch (e) {
+    console.error(`Error generating nav items for ${fullDirPath}:`, e)
+  }
+
+  return items
+}
+
+/**
+ * 生成导航栏配置（支持递归展示，排除 sidebar 中的目录）
+ * @param docsDir docs 目录路径
+ * @param sidebarPaths sidebar 已使用的路径集合
+ */
+export function generateNavConfig(docsDir: string, sidebarPaths: Set<string> = new Set()): NavItem[] {
   const nav: NavItem[] = [
     {
       text: '首页',
@@ -484,58 +567,20 @@ export function generateNavConfig(docsDir: string): NavItem[] {
       }
     }
 
-    // 检查是否有子目录
-    const subDirs: string[] = []
-    try {
-      const items = readdirSync(dirPath, { withFileTypes: true })
-      for (const item of items) {
-        if (item.isDirectory() && hasMarkdownFiles(join(dirPath, item.name))) {
-          subDirs.push(item.name)
-        }
-      }
-    } catch (e) {
-      // 如果无法读取目录，继续
-    }
+    // 递归获取该目录下的所有导航项（排除 sidebar 中的目录）
+    const navItems = generateNavItemsRecursive(docsDir, dir, sidebarPaths)
 
-    // 如果有子目录，创建多级导航
-    if (subDirs.length > 0) {
-      const navItems: NavItem[] = []
-
-      // 主目录链接
-      navItems.push({
-        text: '概览',
-        link: `/${dir}/`
-      })
-
-      // 子目录链接
-      for (const subDir of subDirs.sort((a, b) => compareNamesNaturally(a, b))) {
-        const subDirPath = join(dirPath, subDir)
-        const subDirIndexPath = join(subDirPath, 'index.md')
-
-        let subDirTitle = getDirectoryText(subDirPath, subDir)
-        if (subDirTitle === subDir) {
-          try {
-            if (readdirSync(subDirPath, { withFileTypes: true })
-              .some(item => item.isFile() && item.name === 'index.md')) {
-              subDirTitle = extractTitleFromMarkdown(subDirIndexPath)
-            }
-          } catch (e) {
-            // 如果无法读取，使用目录名
-          }
-        }
-
-        navItems.push({
-          text: subDirTitle,
-          link: `/${dir}/${subDir}/`
-        })
-      }
-
+    // nav 应该显示所有顶级目录，即使它们在 sidebar 中
+    // 但只显示那些不在 sidebar 中的子目录
+    if (navItems.length > 0) {
+      // 如果有不在 sidebar 中的子目录，创建多级导航
       nav.push({
         text: dirTitle,
         items: navItems
       })
     } else {
-      // 没有子目录，直接添加顶级链接
+      // 如果没有不在 sidebar 中的子目录，显示顶级链接
+      // nav 应该显示所有顶级目录，无论它们是否在 sidebar 中
       nav.push({
         text: dirTitle,
         link: `/${dir}/`

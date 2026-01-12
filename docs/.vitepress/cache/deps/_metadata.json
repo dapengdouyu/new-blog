@@ -1,31 +1,37 @@
 {
-  "hash": "e8f3b0dd",
-  "configHash": "01c99451",
+  "hash": "d48c2f4a",
+  "configHash": "d1cf67b2",
   "lockfileHash": "b039fdc1",
-  "browserHash": "04efe46a",
+  "browserHash": "8c2bd032",
   "optimized": {
     "vue": {
-      "src": "../../../../node_modules/.pnpm/registry.npmmirror.com+vue@3.5.26/node_modules/vue/dist/vue.runtime.esm-bundler.js",
+      "src": "../../../../node_modules/vue/dist/vue.runtime.esm-bundler.js",
       "file": "vue.js",
-      "fileHash": "cbd3a2da",
+      "fileHash": "0fd589a9",
       "needsInterop": false
     },
     "vitepress > @vue/devtools-api": {
-      "src": "../../../../node_modules/.pnpm/@vue+devtools-api@8.0.5/node_modules/@vue/devtools-api/dist/index.js",
+      "src": "../../../../node_modules/@vue/devtools-api/dist/index.js",
       "file": "vitepress___@vue_devtools-api.js",
-      "fileHash": "8927c789",
+      "fileHash": "2c7d6fa8",
       "needsInterop": false
     },
     "vitepress > @vueuse/core": {
-      "src": "../../../../node_modules/.pnpm/@vueuse+core@14.1.0_vue@3.5.26/node_modules/@vueuse/core/dist/index.js",
+      "src": "../../../../node_modules/@vueuse/core/index.mjs",
       "file": "vitepress___@vueuse_core.js",
-      "fileHash": "693eabb3",
+      "fileHash": "73bc8486",
+      "needsInterop": false
+    },
+    "@nolebase/vitepress-plugin-breadcrumbs/client": {
+      "src": "../../../../node_modules/@nolebase/vitepress-plugin-breadcrumbs/dist/client/index.mjs",
+      "file": "@nolebase_vitepress-plugin-breadcrumbs_client.js",
+      "fileHash": "df6670c1",
       "needsInterop": false
     }
   },
   "chunks": {
-    "chunk-CVGMW6Q7": {
-      "file": "chunk-CVGMW6Q7.js"
+    "chunk-LE5NDSFD": {
+      "file": "chunk-LE5NDSFD.js"
     }
   }
 }
