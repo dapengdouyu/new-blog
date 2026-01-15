@@ -17,6 +17,19 @@ export default defineConfig({
   description: '这是我的个人博客，分享技术、生活和思考',
   lang: 'zh-CN',
 
+  markdown: {
+    // 启用行号
+    lineNumbers: true,
+    // 配置容器支持
+    container: {
+      tipLabel: '提示',
+      warningLabel: '警告',
+      dangerLabel: '危险',
+      infoLabel: '信息',
+      detailsLabel: '详情',
+    },
+  },
+
   themeConfig: {
     nav,
     sidebar,
