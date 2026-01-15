@@ -10,11 +10,11 @@ import SimpleBlogAudioPlayer from './components/SimpleBlogAudioPlayer.vue'
 
 ## 最新文章
 
-- [日常问题](日常问题/) - 记录和解决日常遇到的各种问题
+- [日常问题](question/) - 记录和解决日常遇到的各种问题
 
 ## 日常问题
 
-- [日常问题](日常问题/) - 记录和解决日常遇到的各种问题
+- [日常问题](question/) - 记录和解决日常遇到的各种问题
 
 ## 关于博客
 

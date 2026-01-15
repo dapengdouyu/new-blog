@@ -17,6 +17,15 @@ export default defineConfig({
   description: '这是我的个人博客，分享技术、生活和思考',
   lang: 'zh-CN',
 
+  vite: {
+    ssr: {
+      noExternal: ['@nolebase/vitepress-plugin-breadcrumbs'],
+    },
+    optimizeDeps: {
+      exclude: ['@nolebase/vitepress-plugin-breadcrumbs/client'],
+    },
+  },
+
   markdown: {
     // 启用行号
     lineNumbers: true,
