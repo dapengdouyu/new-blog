@@ -40,3 +40,4 @@ description: 记录和解决日常遇到的各种问题
 ### 技术问题
 
 - [VitePress 自动化侧边栏配置](./技术问题/vitepress-sidebar.md) - 关于 VitePress 自动化侧边栏配置的技术问题
+- [Git 多域名 SSH 配置](./git多域名ssh配置.md) - 配置 Git 同时支持 gitee、gitlab、github 的 SSH 密钥管理

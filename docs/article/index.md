@@ -1,5 +1,5 @@
 <script setup>
-import SimpleBlogAudioPlayer from './components/SimpleBlogAudioPlayer.vue'
+import SimpleBlogAudioPlayer from '../components/SimpleBlogAudioPlayer.vue'
 </script>
 
 <SimpleBlogAudioPlayer src="https://static0.xesimg.com/story-buddy/ttsmx/20251225/f6f5a36c-1dd0-405f-b30a-cf8a055e38fd.mp3" loop="true" autoplay="false" />
