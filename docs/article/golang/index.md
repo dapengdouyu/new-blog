@@ -79,6 +79,22 @@ description: Go语言学习文档集合
 
 ---
 
+### [Go WebAssembly教程](./wasm/index.md)
+
+**适合人群**：有Go语言基础，想要在浏览器中运行Go代码的开发者
+
+**内容**：从入门到精通的WebAssembly开发学习路径
+
+- ✅ WebAssembly入门：快速开始
+- ✅ WebAssembly基础：Go与JavaScript交互
+- ✅ WebAssembly进阶：DOM操作
+- ✅ WebAssembly实践：构建Web应用
+- ✅ WebAssembly高级：性能优化和最佳实践
+
+**预计学习时间**：1-2周
+
+---
+
 ## 🎯 学习建议
 
 ### 对于初学者
@@ -104,6 +120,8 @@ description: Go语言学习文档集合
 - [Go语言教程（Tour）](https://go.dev/tour/)
 - [Effective Go](https://go.dev/doc/effective_go)
 - [Gin官方文档](https://gin-gonic.com/docs/)
+- [Go WebAssembly文档](https://go.dev/wiki/WebAssembly)
+- [WebAssembly官方文档](https://webassembly.org/)
 
 ---
 
