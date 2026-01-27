@@ -37,8 +37,6 @@ jobs:
       - name: 部署到 GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: ${{ secrets.TOKEN }}
+          github_token: ${{ vars.TOKEN }}
           publish_dir: ./docs/.vitepress/dist
           force_orphan: true
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
