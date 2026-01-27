@@ -155,6 +155,7 @@ export default defineConfig({
   description: '这是我的个人博客，分享技术、生活和思考',
   lang: 'zh-CN',
   base: '/',
+  ignoreDeadLinks: true,
 
   vite: {
     ssr: {
