@@ -20,6 +20,7 @@ const NAME_MAP: Record<string, CategoryNames> = {
   'python':    { sidebar: 'Python教程',       nav: 'Python' },
   'question':  { sidebar: '日常问题',         nav: '日常问题' },
   'kafka':     { sidebar: 'Kafka教程',        nav: 'Kafka' },
+  'langgraph': { sidebar: 'LangGraph教程',    nav: 'LangGraph' },
   '学车教程':   { sidebar: '学车教程',         nav: '学车教程' },
   '开车小技巧': { sidebar: '开车小技巧',       nav: '开车小技巧' },
   '技术问题':   { sidebar: '技术问题',         nav: '技术问题' },
