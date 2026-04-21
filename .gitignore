@@ -29,3 +29,10 @@ dist-ssr
 *.sw?
 docs/.vitepress/dist
 docs/.vitepress/cache
+
+# Cursor IDE
+.agents/
+.cursor/
+
+# Junk files
+*.text

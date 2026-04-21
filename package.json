@@ -20,17 +20,8 @@
   "devDependencies": {
     "@nolebase/vitepress-plugin-breadcrumbs": "^2.18.2",
     "@vitejs/plugin-vue": "^5.0.0",
+    "qiniu": "^7.14.0",
     "vitepress": "^1.0.0",
     "vue": "^3.4.0"
-  },
-  "dependencies": {
-    "@jupyterlab/nbformat": "^4.0.0",
-    "codemirror": "^6.0.1",
-    "highlight.js": "^11.9.0",
-    "katex": "^0.16.0",
-    "markdown-it": "^13.0.0",
-    "markdown-it-katex": "^1.0.0",
-    "monaco-editor": "^0.48.0",
-    "qiniu": "^7.14.0"
   }
 }

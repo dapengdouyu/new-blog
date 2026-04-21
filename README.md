@@ -15,7 +15,7 @@
 ### 安装依赖
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 开发
@@ -197,8 +197,7 @@ blog/
 
 - 使用 Markdown 格式编写文档
 - 支持 Vue 组件和代码预览
-- 支持数学公式（KaTeX）
-- 支持代码高亮（highlight.js）
+- 支持代码高亮
 
 ### 代码规范
 
@@ -213,7 +212,7 @@ blog/
 确保已安装所有依赖：
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 2. 上传到七牛云失败

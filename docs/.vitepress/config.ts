@@ -3,60 +3,38 @@ import { join } from 'path'
 import { readdirSync } from 'fs'
 import type { DefaultTheme } from 'vitepress'
 
-// 动态生成侧边栏配置
-function generateSidebar() {
-  const sidebar: DefaultTheme.Sidebar = {}
-  const articleDir = join(__dirname, '../article')
-
-  // 遍历一级目录
-  const firstLevelDirs = readdirSync(articleDir, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory())
-    .map(dirent => dirent.name)
-
-  for (const firstLevel of firstLevelDirs) {
-    const firstLevelPath = join(articleDir, firstLevel)
-    
-    // 处理 golang 特殊情况，它有子目录
-    if (firstLevel === 'golang') {
-      const golangSubDirs = readdirSync(firstLevelPath, { withFileTypes: true })
-        .filter(dirent => dirent.isDirectory())
-        .map(dirent => dirent.name)
-
-      for (const subDir of golangSubDirs) {
-        const subDirPath = join(firstLevelPath, subDir)
-        const sidebarPath = `/article/${firstLevel}/${subDir}/`
-        const items = generateSidebarItems(subDirPath, sidebarPath)
-        
-        sidebar[sidebarPath] = [{
-          text: getDirDisplayName(subDir),
-          link: sidebarPath,
-          items
-        }]
-      }
-    } else {
-      // 其他一级目录直接处理
-      const sidebarPath = `/article/${firstLevel}/`
-      const items = generateSidebarItems(firstLevelPath, sidebarPath)
-      
-      sidebar[sidebarPath] = [{
-        text: getDirDisplayName(firstLevel),
-        link: sidebarPath,
-        items
-      }]
-    }
-  }
-
-  return sidebar
+interface CategoryNames {
+  sidebar: string
+  nav: string
 }
 
-// 生成单个目录的侧边栏项
+const NAME_MAP: Record<string, CategoryNames> = {
+  'golang':    { sidebar: 'Go语言',          nav: 'Go语言' },
+  'core':      { sidebar: 'Go语言核心教程',   nav: '核心教程' },
+  'gin':       { sidebar: 'Gin框架教程',      nav: 'Gin框架' },
+  'gorm':      { sidebar: 'GORM教程',         nav: 'GORM' },
+  'kratos':    { sidebar: 'Kratos框架教程',   nav: 'Kratos' },
+  'wasm':      { sidebar: 'WebAssembly教程',  nav: 'WebAssembly' },
+  'nginx':     { sidebar: 'Nginx教程',        nav: 'Nginx' },
+  'network':   { sidebar: '网络问题',         nav: '网络' },
+  'python':    { sidebar: 'Python教程',       nav: 'Python' },
+  'question':  { sidebar: '日常问题',         nav: '日常问题' },
+  'kafka':     { sidebar: 'Kafka教程',        nav: 'Kafka' },
+  '学车教程':   { sidebar: '学车教程',         nav: '学车教程' },
+  '开车小技巧': { sidebar: '开车小技巧',       nav: '开车小技巧' },
+  '技术问题':   { sidebar: '技术问题',         nav: '技术问题' },
+}
+
+function getDisplayName(dirName: string, variant: 'sidebar' | 'nav'): string {
+  return NAME_MAP[dirName]?.[variant] ?? dirName
+}
+
 function generateSidebarItems(dirPath: string, basePath: string) {
   const files = readdirSync(dirPath, { withFileTypes: true })
     .filter(dirent => dirent.isFile() && dirent.name.endsWith('.md'))
     .map(dirent => dirent.name)
-    .filter(name => name !== 'index.md') // 排除 index.md
+    .filter(name => name !== 'index.md')
 
-  // 排序文件，确保数字编号的文件按顺序排列
   files.sort((a, b) => {
     const numA = parseInt(a.match(/^\d+/)?.[0] || '0')
     const numB = parseInt(b.match(/^\d+/)?.[0] || '0')
@@ -73,81 +51,94 @@ function generateSidebarItems(dirPath: string, basePath: string) {
   })
 }
 
-// 获取目录的显示名称
-function getDirDisplayName(dirName: string) {
-  const nameMap: Record<string, string> = {
-    'core': 'Go语言核心教程',
-    'gin': 'Gin框架教程',
-    'gorm': 'GORM教程',
-    'kratos': 'Kratos框架教程',
-    'wasm': 'WebAssembly教程',
-    'nginx': 'Nginx教程',
-    'network': '网络问题',
-    'python': 'Python教程',
-    'question': '日常问题',
-    'kafka': 'Kafka教程'
+function generateSidebar() {
+  const sidebar: DefaultTheme.Sidebar = {}
+  const articleDir = join(__dirname, '../article')
+
+  function processDirectory(dirPath: string, urlBase: string) {
+    const entries = readdirSync(dirPath, { withFileTypes: true })
+    const subDirs = entries.filter(e => e.isDirectory())
+    const mdFiles = entries.filter(e => e.isFile() && e.name.endsWith('.md') && e.name !== 'index.md')
+
+    if (mdFiles.length > 0) {
+      const dirName = dirPath.split('/').pop()!
+      const items = generateSidebarItems(dirPath, urlBase)
+      sidebar[urlBase] = [{
+        text: getDisplayName(dirName, 'sidebar'),
+        link: urlBase,
+        items
+      }]
+    }
+
+    for (const subDir of subDirs) {
+      processDirectory(
+        join(dirPath, subDir.name),
+        `${urlBase}${subDir.name}/`
+      )
+    }
   }
-  return nameMap[dirName] || dirName
+
+  const firstLevelDirs = readdirSync(articleDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+
+  for (const dir of firstLevelDirs) {
+    processDirectory(
+      join(articleDir, dir.name),
+      `/article/${dir.name}/`
+    )
+  }
+
+  return sidebar
 }
 
-// 动态生成导航配置
 function generateNav() {
   const nav: DefaultTheme.NavItem[] = [
-    {
-      text: '首页',
-      link: '/article/'
-    }
+    { text: '首页', link: '/article/' }
   ]
   const articleDir = join(__dirname, '../article')
 
-  // 遍历一级目录
   const firstLevelDirs = readdirSync(articleDir, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name)
 
-  for (const firstLevel of firstLevelDirs) {
-    // 处理 golang 特殊情况，它有子目录
-    if (firstLevel === 'golang') {
-      const golangSubDirs = readdirSync(join(articleDir, firstLevel), { withFileTypes: true })
-        .filter(dirent => dirent.isDirectory())
-        .map(dirent => dirent.name)
+  for (const dirName of firstLevelDirs) {
+    const dirPath = join(articleDir, dirName)
+    const subDirs = readdirSync(dirPath, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
 
-      const golangItems: DefaultTheme.NavItem[] = golangSubDirs.map(subDir => ({
-        text: getNavItemDisplayName(subDir),
-        link: `/article/${firstLevel}/${subDir}/`
-      }))
+    if (subDirs.length > 0) {
+      const items: DefaultTheme.NavItem[] = []
+
+      const hasOwnFiles = readdirSync(dirPath, { withFileTypes: true })
+        .some(e => e.isFile() && e.name.endsWith('.md') && e.name !== 'index.md')
+
+      if (hasOwnFiles) {
+        items.push({
+          text: getDisplayName(dirName, 'nav'),
+          link: `/article/${dirName}/`
+        })
+      }
+
+      for (const subDir of subDirs) {
+        items.push({
+          text: getDisplayName(subDir.name, 'nav'),
+          link: `/article/${dirName}/${subDir.name}/`
+        })
+      }
 
       nav.push({
-        text: 'Go语言',
-        items: golangItems
+        text: getDisplayName(dirName, 'nav'),
+        items
       })
     } else {
-      // 其他一级目录直接处理
       nav.push({
-        text: getNavItemDisplayName(firstLevel),
-        link: `/article/${firstLevel}/`
+        text: getDisplayName(dirName, 'nav'),
+        link: `/article/${dirName}/`
       })
     }
   }
 
   return nav
-}
-
-// 获取导航项的显示名称
-function getNavItemDisplayName(dirName: string) {
-  const nameMap: Record<string, string> = {
-    'core': '核心教程',
-    'gin': 'Gin框架',
-    'gorm': 'GORM',
-    'kratos': 'Kratos',
-    'wasm': 'WebAssembly',
-    'nginx': 'Nginx',
-    'network': '网络',
-    'python': 'Python',
-    'question': '日常问题',
-    'kafka': 'Kafka'
-  }
-  return nameMap[dirName] || dirName
 }
 
 export default defineConfig({

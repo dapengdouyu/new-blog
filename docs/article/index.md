@@ -10,10 +10,10 @@ import SimpleBlogAudioPlayer from '../components/SimpleBlogAudioPlayer.vue'
 
 ## 最新文章
 
-- [日常问题](question/) - 记录和解决日常遇到的各种问题
-
-## 日常问题
-
+- [Go语言教程](golang/) - Go语言从基础到高级的完整学习路径
+- [Nginx教程](nginx/) - Nginx配置与最佳实践
+- [Kafka教程](kafka/) - Kafka消息队列入门与实践
+- [网络基础](network/) - IP地址、子网掩码等网络知识
 - [日常问题](question/) - 记录和解决日常遇到的各种问题
 
 ## 关于博客
@@ -28,6 +28,5 @@ import SimpleBlogAudioPlayer from '../components/SimpleBlogAudioPlayer.vue'
 
 ## 技术栈
 
-- VitePress 2.0.0-alpha.15
-- Vue 3.5.26
-- JavaScript
+- VitePress 1.x
+- Vue 3.x
