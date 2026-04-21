@@ -1,0 +1,14 @@
+{
+  "name": "get-prd-document",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "获取知音楼需求文档的脚本工具集",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.0.0"
+  }
+}
