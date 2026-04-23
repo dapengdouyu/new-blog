@@ -36,6 +36,7 @@ LangGraph 是 LangChain 团队开发的一个框架，用于构建**有状态的
 
 7. [子图与多 Agent 系统](./7.LangGraph高级：子图与多Agent系统) - 子图嵌套、多 Agent 协作架构
 8. [流式输出与生产部署](./8.LangGraph高级：流式输出与生产部署) - 流式响应、错误处理与 LangGraph Platform
+9. [Skills 技能系统集成](./9.LangGraph高级：Skills技能系统集成) - 在纯 LangGraph 图中实现技能加载与渐进式披露
 
 ## 前置知识
 

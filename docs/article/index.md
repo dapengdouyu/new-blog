@@ -10,6 +10,7 @@ import SimpleBlogAudioPlayer from '../components/SimpleBlogAudioPlayer.vue'
 
 ## 最新文章
 
+- [AI教程](ai/) - Deep Agents、LangGraph 等 AI Agent 开发教程
 - [Go语言教程](golang/) - Go语言从基础到高级的完整学习路径
 - [Nginx教程](nginx/) - Nginx配置与最佳实践
 - [Kafka教程](kafka/) - Kafka消息队列入门与实践
